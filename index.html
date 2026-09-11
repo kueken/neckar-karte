@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neckar & Echaz – Das entwässerte Einzugsgebiet, Sommer 2026</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #f5f0e8;
+    color: #2a2018;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 28px 32px 20px;
+    border-bottom: 2px solid #c8b89a;
+    background: #f5f0e8;
+  }
+
+  header .eyebrow {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: #8b7355;
+    margin-bottom: 8px;
+  }
+
+  header h1 {
+    font-size: clamp(18px, 3vw, 28px);
+    font-weight: normal;
+    color: #2a2018;
+    line-height: 1.25;
+    max-width: 700px;
+  }
+
+  header h1 em {
+    color: #a0391a;
+    font-style: normal;
+  }
+
+  header p.sub {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #5a4a38;
+    font-family: 'Courier New', monospace;
+    max-width: 700px;
+    line-height: 1.5;
+  }
+
+  #map {
+    width: 100%;
+    height: calc(100vh - 160px);
+    min-height: 420px;
+  }
+
+  /* Leaflet popup style */
+  .leaflet-popup-content-wrapper {
+    background: #fffdf8;
+    border: 1px solid #c8b89a;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.6);
+    color: #2a2018;
+    font-family: 'Georgia', serif;
+    max-width: 280px;
+  }
+
+  .leaflet-popup-tip {
+    background: #fffdf8;
+  }
+
+  .leaflet-popup-content {
+    margin: 14px 16px;
+  }
+
+  .popup-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #a0391a;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .popup-body {
+    font-size: 12px;
+    line-height: 1.55;
+    color: #5a4a38;
+  }
+
+  .popup-tag {
+    display: inline-block;
+    margin-top: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+
+  .tag-wehr    { background: #5a1a0a; color: #f08060; }
+  .tag-wkw     { background: #1a3a2a; color: #70c090; }
+  .tag-pegel   { background: #1a2a4a; color: #7090d0; }
+  .tag-natur   { background: #2a3a1a; color: #90b060; }
+  .tag-solar   { background: #3a3a1a; color: #c0b040; }
+
+  /* custom pin colors via divIcon */
+  .pin-wehr    { background: #c0392b; }
+  .pin-wkw     { background: #27ae60; }
+  .pin-pegel   { background: #2980b9; }
+  .pin-natur   { background: #8e6dbf; }
+  .pin-solar   { background: #d4ac0d; }
+
+  .custom-pin {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.5);
+    box-shadow: 0 0 6px rgba(0,0,0,.8);
+  }
+
+  footer {
+    background: #e8e0d0;
+    padding: 12px 32px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #6a5e50;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  footer a { color: #5a4a38; text-decoration: none; }
+  footer a:hover { color: #a0391a; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Recherche · Rantanplan · August 2026</div>
+  <h1>Neckar & Echaz — <em>Das entwässerte Einzugsgebiet</em>, Sommer 2026</h1>
+  <p class="sub">
+    Geöffnetes Wehr Oferdingen (Frühjahr–August 2026) · Sechs kommunale Wasserkraftwerke stillgelegt (seit Mitte Juli) ·
+    Wasserentnahmeverbot Landkreis Reutlingen · Pin anklicken für Details.
+  </p>
+</header>
+
+<div id="map"></div>
+
+<footer>
+  <span>Kartengrundlage: © OpenStreetMap-Mitwirkende</span>
+  <span>Quellen: LUBW-Pegeldaten, SWR 20.8.2026, GEA 19.8.2026, Behördenantwort Landratsamt Reutlingen</span>
+  <a href="https://rantanplan2.substack.com/p/ein-stilles-verbrechen-an-der-landschaft" target="_blank">→ Zum Substack-Artikel</a>
+</footer>
+
+<script>
+const map = L.map('map', {
+  center: [48.49, 9.17],
+  zoom: 11,
+  zoomControl: true
+});
+
+L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap-Mitwirkende, © OpenTopoMap (CC-BY-SA)',
+  
+  maxZoom: 19
+}).addTo(map);
+
+function makePin(color) {
+  return L.divIcon({
+    className: '',
+    html: `<div class="custom-pin pin-${color}"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+    popupAnchor: [0, -10]
+  });
+}
+
+const orte = [
+  {
+    lat: 48.518066, lng: 9.069308,
+    color: 'wehr',
+    title: '① Tübinger Stauwehr (Neckarwerk, 1911)',
+    body: 'Referenzpunkt: Wehr geschlossen, Tübinger Stadtbild intakt. Wasserkraftwerk (Stadtwerke Tübingen) ebenfalls wegen Niedrigwasser stillgelegt (SWR, 20.8.2026). Zeigt: Das Problem betrifft die gesamte Region, nicht nur Oferdingen.',
+    tag: 'tag-wehr', tagtext: 'Stauwehr'
+  },
+  {
+    lat: 48.5818, lng: 9.0337,
+    color: 'natur',
+    title: '② Schönbuch-Waldrand (entwässerte Hänge)',
+    body: 'Hänge zum Neckar hin: nach Beobachtung des Autors (eigene Fotos, Aug. 2026) sichtbar trockengestresste Vegetation. Kapillare Verbindung zum künstlich abgesenkten Neckar-Pegel plausibel.',
+    tag: 'tag-natur', tagtext: 'Hangbereich'
+  },
+  {
+    lat: 48.5357, lng: 9.1326,
+    color: 'wkw',
+    title: '③ WKW Kirchentellinsfurt (FairEnergie)',
+    body: 'Kommunales Wasserkraftwerk der FairEnergie GmbH (Tochter der Stadtwerke Reutlingen). Laut SWR seit Mitte Juli komplett außer Betrieb – Echaz führt zu wenig Wasser. Echaz-Mündung in den Neckar liegt direkt hier.',
+    tag: 'tag-wkw', tagtext: 'WKW still (seit Mitte Juli)'
+  },
+  {
+    lat: 48.5229, lng: 9.1444,
+    color: 'pegel',
+    title: '④ Pegelstation Wannweil / Echaz (LUBW)',
+    body: 'Offizielle Messstelle. Juli 2026: drei Abflussspitzen über HQ2 (31,5 m³/s) – am 15., 16. und 18. Juli. Wasser war also da, floss aber ungenutzt ab. MNQ: 0,92 m³/s selbst an Niedrigstwassertagen.',
+    tag: 'tag-pegel', tagtext: 'LUBW-Messstelle'
+  },
+  {
+    lat: 48.5497, lng: 9.1984,
+    color: 'wehr',
+    title: '⑤ Kanu-Witt / Wehr Oferdingen (geöffnet)',
+    body: 'Seit Frühjahr 2026 offen. Steg auf freigelegtem Flussgrund dokumentiert. Wasserstand ca. 2 Meter unter Normal. Fotodokumentation vorhanden. Ursprünglich angekündigter Abschluss: Ende Juni.',
+    tag: 'tag-wehr', tagtext: 'Wehr seit März offen'
+  },
+  {
+    lat: 48.5537, lng: 9.1999,
+    color: 'wkw',
+    title: '⑥ WKW Oferdingen (Baustelle E-Werk)',
+    body: 'Sanierung des E-Werks: Fischtreppe und Nebenanlagen laut Vor-Ort-Beobachtung seit Mitte Juni fertig, Hauptgebäude zuletzt ohne erkennbare Arbeiten. Laut GEA (19.8.2026): ursprünglich für Mai geplant. Betreiber: privat.',
+    tag: 'tag-wkw', tagtext: 'Baustelle'
+  },
+  {
+    lat: 48.4069, lng: 9.2672,
+    color: 'natur',
+    title: '⑦ Echazquelle bei Lichtenstein',
+    body: 'Ursprung der Echaz auf der Schwäbischen Alb. Ca. 30 km Flusslauf bis zur Mündung in den Neckar bei Kirchentellinsfurt. Der gesamte Verlauf war in diesem Sommer von Niedrigwasser betroffen.',
+    tag: 'tag-natur', tagtext: 'Echazquelle'
+  },
+  {
+    lat: 48.3741, lng: 9.4802,
+    color: 'solar',
+    title: '⑦ Solarpark Buttenhausen (FairEnergie)',
+    body: 'Laut SWR-Artikel (20.8.2026): FairEnergie kompensiert ausgefallene Wasserkraft durch diesen Solarpark. Eine Google-Rezension vor Ort: "heizt und trocknet unmittelbare Umgebung aus". Frage: Macht PV-Fallback den Schutz der Wasserstände strukturell weniger dringlich?',
+    tag: 'tag-solar', tagtext: 'PV-Ersatz laut FairEnergie'
+  }
+];
+
+orte.forEach(o => {
+  const marker = L.marker([o.lat, o.lng], { icon: makePin(o.color) }).addTo(map);
+  marker.bindPopup(`
+    <div class="popup-title">${o.title}</div>
+    <div class="popup-body">${o.body}</div>
+    <span class="popup-tag ${o.tag}">${o.tagtext}</span>
+  `, { maxWidth: 290 });
+});
+
+// Echaz-Verlauf (vereinfacht)
+const echaz = [
+  [48.407, 9.267], [48.430, 9.245], [48.448, 9.220],
+  [48.462, 9.205], [48.475, 9.185], [48.490, 9.172],
+  [48.505, 9.158], [48.518, 9.148], [48.523, 9.144],
+  [48.531, 9.139], [48.536, 9.133]
+];
+
+L.polyline(echaz, {
+  color: '#4a9fd4',
+  weight: 2.5,
+  opacity: 0.7,
+  dashArray: '5,4'
+}).addTo(map).bindTooltip('Echaz-Verlauf (vereinfacht)', { sticky: true });
+
+// Neckar-Abschnitt Tübingen–Oferdingen
+const neckar = [
+  [48.518, 9.069], [48.522, 9.085], [48.528, 9.100],
+  [48.533, 9.115], [48.536, 9.133], [48.541, 9.150],
+  [48.546, 9.168], [48.550, 9.185], [48.554, 9.200]
+];
+
+L.polyline(neckar, {
+  color: '#c0783a',
+  weight: 3,
+  opacity: 0.75
+}).addTo(map).bindTooltip('Neckar: Tübingen → Oferdingen (betroffener Abschnitt)', { sticky: true });
+
+// Legende
+const legend = L.control({ position: 'bottomleft' });
+legend.onAdd = function() {
+  const div = L.DomUtil.create('div');
+  div.style.cssText = 'background:#fffdf8;border:1px solid #c8b89a;padding:10px 14px;font-family:Courier New,monospace;font-size:11px;color:#3a2a18;line-height:1.8;border-radius:3px;';
+  div.innerHTML = `
+    <div style="margin-bottom:6px;color:#6a5040;letter-spacing:.1em;text-transform:uppercase;font-size:10px;">Legende</div>
+    <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#c0392b;margin-right:7px;vertical-align:middle;"></span>Stauwehr / Wehr</div>
+    <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27ae60;margin-right:7px;vertical-align:middle;"></span>Wasserkraftwerk (still)</div>
+    <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2980b9;margin-right:7px;vertical-align:middle;"></span>Pegelstation</div>
+    <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#8e6dbf;margin-right:7px;vertical-align:middle;"></span>Naturraum / Hangbereich</div>
+    <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#d4ac0d;margin-right:7px;vertical-align:middle;"></span>Solarpark (PV-Ersatz)</div>
+    <div style="margin-top:8px;border-top:1px solid #c8b89a;padding-top:8px;">
+      <span style="display:inline-block;width:22px;height:3px;background:#c0783a;margin-right:6px;vertical-align:middle;border-radius:1px;"></span>Neckar (betr. Abschnitt)<br>
+      <span style="display:inline-block;width:22px;height:2px;background:#4a9fd4;border-top:2px dashed #4a9fd4;margin-right:6px;vertical-align:middle;border-radius:1px;margin-top:4px;"></span>Echaz-Verlauf
+    </div>
+  `;
+  return div;
+};
+legend.addTo(map);
+</script>
+</body>
+</html>
